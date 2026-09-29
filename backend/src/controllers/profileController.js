@@ -1,6 +1,10 @@
 // backend/src/controllers/profileController.js
 
 const { pool } = require('../config/db');
+const { mapUserCompetencies } = require('../services/competencyMappingService');
+const { calculateAndStoreSkillGaps } = require('../services/skillGapService');
+const { generateRecommendations } = require('../services/recommendationService');
+const { generateLearningPath } = require('../services/learningPathService');
 
 const PROFILE_FIELDS = ['designation', 'department', 'qualification', 'experience', 'interests', 'skill_level'];
 
@@ -65,6 +69,23 @@ async function updateProfile(req, res) {
          WHERE user_id = ?`,
         [designation, department, qualification, experience, interests, level, req.user.id]
       );
+    }
+
+    // keep the competency mapping in sync with the profile.
+    // and skill gaps in sync with the mapping.
+    // and recommendations in sync with the gaps.
+    // and the learning path in sync with the recommendations.
+    // None of these must ever break the profile-save response itself
+    // — if any step fails (e.g. no requirements configured yet for
+    // this designation), we log it and still report success for the
+    // profile save, which is the operation the user asked for.
+    try {
+      await mapUserCompetencies(req.user.id);
+      await calculateAndStoreSkillGaps(req.user.id);
+      await generateRecommendations(req.user.id);
+      await generateLearningPath(req.user.id);
+    } catch (mappingErr) {
+      console.error('[UpdateProfile -> Competency Mapping/Skill Gap/Recommendation/Path Error]', mappingErr.message);
     }
 
     return res.json({ success: true, message: 'Profile updated successfully.' });

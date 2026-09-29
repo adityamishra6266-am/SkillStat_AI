@@ -6,7 +6,7 @@ echo ==========================================
 echo.
 
 REM Project location
-set "PROJECT=D:\skillstat-ai"
+set "PROJECT=D:\PROJECT\SIHPROJECT\SkillStat_AI"
 
 REM Check project folder
 if not exist "%PROJECT%" (

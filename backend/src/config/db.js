@@ -1,6 +1,7 @@
 // backend/src/config/db.js
 // MySQL connection pool using mysql2/promise. Reads credentials from .env
-// so nothing is hard-coded in source. Works with default XAMPP MySQL setup.
+// so nothing is hard-coded in source. Works with any local MySQL / MariaDB
+// installation (including XAMPP) - set DB_HOST / DB_PORT / DB_USER / DB_PASSWORD.
 
 const mysql = require('mysql2/promise');
 require('dotenv').config();
@@ -27,7 +28,7 @@ async function testConnection() {
   } catch (err) {
     console.error('[DB] MySQL connection failed:', err.message);
     console.error(
-      '[DB] Make sure XAMPP MySQL is running and skillstat_ai database exists (import database/schema.sql).'
+      '[DB] Make sure MySQL is running on DB_HOST:DB_PORT and the skillstat_ai database exists (run `npm run db:setup` in backend/, or import database/final_setup.sql).'
     );
     return false;
   }

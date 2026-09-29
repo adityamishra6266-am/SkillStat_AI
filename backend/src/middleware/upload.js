@@ -37,7 +37,11 @@ const storage = multer.diskStorage({
 
 function fileFilter(req, file, cb) {
   const ext = path.extname(file.originalname).toLowerCase();
-  if (!ALLOWED_EXTENSIONS.includes(ext) || !ALLOWED_MIME_TYPES.includes(file.mimetype)) {
+  // Extension is the primary check; browsers sometimes send a generic MIME type
+  // (e.g. application/octet-stream) for valid Office files, and the file's real
+  // content is verified after upload (see documentController.contentMatchesType).
+  const mimeOk = ALLOWED_MIME_TYPES.includes(file.mimetype) || file.mimetype === 'application/octet-stream';
+  if (!ALLOWED_EXTENSIONS.includes(ext) || !mimeOk) {
     return cb(new Error('INVALID_FILE_TYPE'), false);
   }
   cb(null, true);
@@ -48,7 +52,7 @@ const maxSizeMB = Number(process.env.MAX_FILE_SIZE_MB) || 10;
 const upload = multer({
   storage,
   fileFilter,
-  limits: { fileSize: maxSizeMB * 1024 * 1024 },
+  limits: { fileSize: maxSizeMB * 1024 * 1024, files: 1 },
 });
 
-module.exports = { upload, UPLOAD_DIR };
+module.exports = { upload, UPLOAD_DIR, MAX_SIZE_MB: maxSizeMB };

@@ -1,7 +1,7 @@
 // frontend/src/pages/Results.jsx
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import Sidebar from '../components/Sidebar.jsx';
+import AppShell from '../components/AppShell.jsx';
 import api from '../services/api';
 
 function badgeClass(pct) {
@@ -34,20 +34,18 @@ export default function Results() {
   }
 
   return (
-    <div className="app-shell">
-      <Sidebar />
-      <main className="content-area">
+    <AppShell>
         <div className="page-header">
           <div>
-            <h2>Results</h2>
+            <h2>Assessment Results</h2>
             <p>A full history of every quiz you've attempted.</p>
           </div>
         </div>
 
         {loading ? (
-          <div className="page-loading">Loading results...</div>
+          <div className="page-loading" role="status">Loading results…</div>
         ) : error ? (
-          <div className="form-error">{error}</div>
+          <div className="form-error" role="alert">{error}{' '}<button type="button" className="btn-link" onClick={fetchResults}>Retry</button></div>
         ) : (
           <>
             <div className="stat-grid">
@@ -94,7 +92,7 @@ export default function Results() {
                     {results.map((r) => (
                       <tr key={r.id}>
                         <td>{r.quiz_title}</td>
-                        <td>{r.document_name}</td>
+                        <td>{r.quiz_type === 'Diagnostic' ? <span className="badge badge-indigo">Diagnostic</span> : r.document_name}</td>
                         <td>
                           {r.score}/{r.total_questions}
                         </td>
@@ -113,7 +111,6 @@ export default function Results() {
             </div>
           </>
         )}
-      </main>
-    </div>
+      </AppShell>
   );
 }

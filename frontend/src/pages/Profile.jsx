@@ -1,6 +1,6 @@
 // frontend/src/pages/Profile.jsx
 import React, { useEffect, useState } from 'react';
-import Sidebar from '../components/Sidebar.jsx';
+import AppShell from '../components/AppShell.jsx';
 import api from '../services/api';
 
 const SKILL_LEVELS = ['Beginner', 'Intermediate', 'Advanced'];
@@ -70,23 +70,26 @@ export default function Profile() {
   }
 
   return (
-    <div className="app-shell">
-      <Sidebar />
-      <main className="content-area">
+    <AppShell>
         <div className="page-header">
           <div>
-            <h2>Your Profile</h2>
+            <h2>Official Profile</h2>
             <p>This information personalizes the quizzes generated from your documents.</p>
           </div>
         </div>
 
         {loading ? (
-          <div className="page-loading">Loading profile...</div>
+          <div className="page-loading" role="status">Loading official profile…</div>
         ) : (
           <div className="two-col">
             <div className="card">
               {message && <div className="form-success">{message}</div>}
-              {error && <div className="form-error">{error}</div>}
+              {error && (
+                <div className="form-error" role="alert">
+                  {error}{' '}
+                  <button type="button" className="btn-link" onClick={fetchProfile}>Retry</button>
+                </div>
+              )}
 
               <form onSubmit={handleSubmit}>
                 <div className="two-col" style={{ marginBottom: 0 }}>
@@ -184,13 +187,12 @@ export default function Profile() {
                 <div className="progress-bar-fill" style={{ width: `${completion}%` }} />
               </div>
               <p style={{ fontSize: 13.5 }}>
-                A complete profile helps SkillStat AI tailor quiz difficulty and focus to your
+                A complete official profile lets SkillStat AI map competencies to your designation and tailor quiz difficulty and focus to your
                 background — fill in every field for the best results.
               </p>
             </div>
           </div>
         )}
-      </main>
-    </div>
+      </AppShell>
   );
 }

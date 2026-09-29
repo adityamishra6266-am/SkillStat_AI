@@ -9,6 +9,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.routes.quiz import router as quiz_router
+from app.routes.diagnostic import router as diagnostic_router
 
 load_dotenv()
 
@@ -29,6 +30,7 @@ app.add_middleware(
 )
 
 app.include_router(quiz_router)
+app.include_router(diagnostic_router)
 
 
 @app.get("/")
@@ -38,9 +40,11 @@ def root():
 
 @app.get("/health")
 def health():
-    llm_configured = bool(os.getenv("LLM_API_KEY", "").strip())
+    # Both the key and the URL are required by every LLM call in this service,
+    # so both must be set for the service to honestly report "LLM configured".
+    llm_configured = bool(os.getenv("LLM_API_KEY", "").strip() and os.getenv("LLM_API_URL", "").strip())
     return {
         "status": "ok",
         "llm_configured": llm_configured,
-        "mode": "LLM" if llm_configured else "mock-generator (offline fallback)",
+        "mode": "LLM-assisted" if llm_configured else "Fallback (extractive quiz generator + curated question bank)",
     }
