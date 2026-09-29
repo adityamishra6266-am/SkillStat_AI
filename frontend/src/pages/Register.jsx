@@ -39,10 +39,10 @@ export default function Register() {
           SkillStat AI
         </div>
         <div className="tagline">
-          <h2>Start your personalized learning path</h2>
+          <h2>Start your personalized learning journey.</h2>
           <p>
-            Tell us a bit about your role and experience once — every quiz you take after that is
-            tuned to fit you.
+            Create your profile once. SkillStat AI uses your role, experience, and competency
+            assessment to personalize your learning journey.
           </p>
         </div>
         <div className="stat-row">

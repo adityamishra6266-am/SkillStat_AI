@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { FileText } from 'lucide-react';
-import Sidebar from '../components/Sidebar.jsx';
+import AppShell from '../components/AppShell.jsx';
 import api from '../services/api';
 
 const TYPE_LABEL = { pdf: 'PDF', docx: 'DOCX', pptx: 'PPTX', txt: 'TXT' };
@@ -30,9 +30,7 @@ export default function MyQuizzes() {
   }
 
   return (
-    <div className="app-shell">
-      <Sidebar />
-      <main className="content-area">
+    <AppShell>
         <div className="page-header">
           <div>
             <h2>My Quizzes</h2>
@@ -44,9 +42,9 @@ export default function MyQuizzes() {
         </div>
 
         {loading ? (
-          <div className="page-loading">Loading your quizzes...</div>
+          <div className="page-loading" role="status">Loading your quizzes…</div>
         ) : error ? (
-          <div className="form-error">{error}</div>
+          <div className="form-error" role="alert">{error}{' '}<button type="button" className="btn-link" onClick={fetchDocuments}>Retry</button></div>
         ) : documents.length === 0 ? (
           <div className="card">
             <div className="empty-state">
@@ -95,7 +93,6 @@ export default function MyQuizzes() {
             ))}
           </div>
         )}
-      </main>
-    </div>
+      </AppShell>
   );
 }

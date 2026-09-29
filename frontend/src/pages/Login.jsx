@@ -20,7 +20,9 @@ export default function Login() {
     try {
       const { data } = await api.post('/auth/login', { email, password });
       login(data.token, data.user);
-      navigate('/dashboard');
+      // Administrators land on the workforce analytics dashboard;
+      // everyone else goes to the learner dashboard.
+      navigate(data.user?.role === 'admin' ? '/admin' : '/dashboard');
     } catch (err) {
       setError(err.response?.data?.message || 'Unable to log in. Please try again.');
     } finally {
@@ -36,16 +38,16 @@ export default function Login() {
           SkillStat AI
         </div>
         <div className="tagline">
-          <h2>Learning that adapts to you</h2>
+          <h2>Build the skills you need to succeed.</h2>
           <p>
-            Upload a document, and get a five-question quiz generated around your role, your
-            experience, and exactly what you just read.
+            Assess your competencies, identify skill gaps, and discover personalized learning paths
+            based on your role, experience, and learning needs.
           </p>
         </div>
         <div className="stat-row">
           <div>
-            <div className="stat-num">5</div>
-            <div className="stat-label">Questions per quiz</div>
+            <div className="stat-num">2+</div>
+            <div className="stat-label">Assessment types</div>
           </div>
           <div>
             <div className="stat-num">4</div>

@@ -1,17 +1,23 @@
 # ai-service/app/services/quiz_generator.py
 # Generates a personalized 5-question MCQ quiz from extracted document text
-# and the user's profile. Uses a real LLM if LLM_API_KEY is configured in
-# .env, otherwise falls back to a deterministic mock generator so the whole
-# application still works with zero external API keys.
+# and the user's profile.
+#   - LLM mode       : used only when LLM_API_KEY + LLM_API_URL are configured
+#                      AND the model's output passes validation.
+#   - Extractive mode: deterministic fallback that builds the questions from the
+#                      uploaded document's own sentences. It is NOT an LLM and is
+#                      never labelled as one - the response reports which mode
+#                      produced the questions (generationMode).
 
 import json
 import os
 import random
 import re
 from collections import Counter
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
 import httpx
+
+from app.services.validation import validate_questions
 
 STOPWORDS = set(
     """a an the and or but if then else for of to in on at by with from as is are was were be been
@@ -57,13 +63,20 @@ def _extract_keywords(text: str, top_n: int = 12) -> List[str]:
 
 
 def detect_topic(text: str) -> str:
-    """Best-effort topic detection: use the most frequent meaningful phrase,
-    falling back to the first non-trivial line of the document."""
+    """Best-effort topic detection. A short, title-like first line (typical of
+    documents, slide decks and notes) is used when present; otherwise the two
+    most frequent meaningful words are used. This is only a display label - the
+    competency mapping is done separately, question by question."""
+    lines = [l.strip() for l in text.splitlines() if l.strip()]
+    if lines:
+        first = lines[0]
+        if 6 <= len(first) <= 80 and not first.endswith((".", "!", "?", ",", ";")):
+            return first
+
     keywords = _extract_keywords(text, top_n=3)
     if keywords:
         return " ".join(keywords[:2]).title()
 
-    lines = [l.strip() for l in text.splitlines() if l.strip()]
     if lines:
         return lines[0][:60]
     return "General Topic"
@@ -74,9 +87,9 @@ def _truncate(s: str, max_len: int = 160) -> str:
     return s if len(s) <= max_len else s[: max_len - 3].rstrip() + "..."
 
 
-def _mock_generate_questions(text: str, profile: Dict[str, str]) -> List[Dict]:
-    """Deterministic, dependency-free quiz generator built directly from the
-    document content, so questions always relate to what was uploaded."""
+def _extractive_generate_questions(text: str, profile: Dict[str, str]) -> List[Dict]:
+    """Deterministic, dependency-free (non-LLM) quiz generator built directly from
+    the document content, so questions always relate to what was uploaded."""
     sentences = _split_sentences(text)
     keywords = _extract_keywords(text, top_n=16)
 
@@ -174,7 +187,7 @@ def _mock_generate_questions(text: str, profile: Dict[str, str]) -> List[Dict]:
 async def _llm_generate_questions(text: str, profile: Dict[str, str]) -> Optional[List[Dict]]:
     """Attempts to generate questions using a configured LLM API.
     Returns None if not configured or if the call/parsing fails, so the
-    caller can fall back to the mock generator."""
+    caller can fall back to the extractive generator."""
     api_key = os.getenv("LLM_API_KEY", "").strip()
     api_url = os.getenv("LLM_API_URL", "").strip()
     model = os.getenv("LLM_MODEL", "").strip()
@@ -240,25 +253,19 @@ Rules:
         raw_text = re.sub(r"^```json\s*|\s*```$", "", raw_text.strip())
 
         parsed = json.loads(raw_text)
-        questions = parsed.get("questions", [])
-
-        if len(questions) != 5:
-            return None
-        for q in questions:
-            if len(q.get("options", [])) != 4:
-                return None
-            if not isinstance(q.get("correctAnswer"), int) or not (0 <= q["correctAnswer"] <= 3):
-                return None
-
-        return questions
-    except Exception:  # noqa: BLE001 — any failure falls back to mock generator
+        # Reject the whole set if anything is malformed (count, options,
+        # correctAnswer range, empty text, missing explanation).
+        return validate_questions(parsed.get("questions"), expected_count=5)
+    except Exception:  # noqa: BLE001 — any failure falls back to the extractive generator
         return None
 
 
-async def generate_personalized_quiz(text: str, profile: Dict[str, str]) -> List[Dict]:
-    """Main entry point: tries the LLM (if configured), falls back to the
-    mock generator so the app always returns a usable quiz."""
+async def generate_personalized_quiz(text: str, profile: Dict[str, str]) -> Tuple[List[Dict], str]:
+    """Main entry point. Returns (questions, generation_mode) where
+    generation_mode is 'llm' or 'extractive'. Tries the LLM first (if
+    configured); anything invalid falls back to the extractive generator so the
+    app always returns a usable quiz - and always says which one it was."""
     questions = await _llm_generate_questions(text, profile)
     if questions:
-        return questions
-    return _mock_generate_questions(text, profile)
+        return questions, "llm"
+    return _extractive_generate_questions(text, profile), "extractive"
